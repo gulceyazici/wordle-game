@@ -57,15 +57,21 @@ public class Tile : MonoBehaviour
     {
         if (result)
         {
+            
             tileAnimator.SetBool("SetTile", true);
             
         }
         else
         {
+            
             tileAnimator.SetBool("SetTile", false);
         }
         
     }
-    
+    public void ResetTile()
+    {
+        tileAnimator.SetBool("SetTile", false);
+    }
+
 
 }

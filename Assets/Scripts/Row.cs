@@ -2,7 +2,7 @@
 using System;
 using UnityEngine;
 
-public class Row : MonoBehaviour //monobehaviour ne öðren
+public class Row : MonoBehaviour 
 {
    //keep an array of tiles
    public Tile[] tiles { get; private set; }

@@ -16,21 +16,22 @@ public class Board : MonoBehaviour
         KeyCode.S, KeyCode.T, KeyCode.U, KeyCode.V, KeyCode.W, KeyCode.X,
         KeyCode.Y, KeyCode.Z
     };
+
     // key inputs
     private Row[] rows;
-    private Button[] buttons;
     private string[] solutions;
     private string[] validWords;
     private string word;
     private string text;
-    private Button button;
-    
+
 
     private int rowIndex;
-    private int columnIndex =0;
-    
+    private int columnIndex = 0;
+    private int count = 0;
+
 
     [Header("States")]
+
     public Tile.State emptyState;
     public Tile.State occupiedState;
     public Tile.State correctState;
@@ -40,16 +41,35 @@ public class Board : MonoBehaviour
     [Header("UI")]
 
     public TextMeshProUGUI invalidWordText;
+    public TextMeshProUGUI correctWordText;
+    public TextMeshProUGUI gameOverText;
+    public TextMeshProUGUI playAgainText;
+    public GameObject playAgainButton;
 
     public void Awake()
     {
         rows = GetComponentsInChildren<Row>();
-        buttons = GetComponentsInChildren<Button>();
+
+        foreach (Row row in rows)
+        {
+            foreach (Tile tile in row.tiles)
+            {
+                tile.ResetTile();
+            }
+        }
     }
     private void Start()
     {
         LoadData();
+        NewGame();
+    }
+    public void NewGame()
+    {
+        
+        ClearBoard();
         SetRandomWord();
+        enabled = true;
+
     }
     private void LoadData()
     {
@@ -65,7 +85,7 @@ public class Board : MonoBehaviour
     {
         word = solutions[UnityEngine.Random.Range(0, solutions.Length)];
         word = word.ToLower().Trim();
-        
+
     }
     public void KeyboardActions()
     {
@@ -86,13 +106,11 @@ public class Board : MonoBehaviour
         else if (Button.CheckIfButtonClicked())
         {
 
-            text = Button.ReturnLetter();
-            Debug.Log(text.Equals("ENTER"));
-            Debug.Log(columnIndex);
+            text = Button.ReturnLetter().ToLower();
 
-            if (text.Equals("BACK"))
+            if (text.Equals("back"))
             {
-                Debug.Log("back içi");
+                
                 columnIndex = Mathf.Max(columnIndex - 1, 0);
                 // deleting a character in tiles
                 currentRow.tiles[columnIndex].setLetter('\0'); // chosen tile will be null/empty
@@ -101,9 +119,9 @@ public class Board : MonoBehaviour
                 currentRow.InvalidWord(false);
             }
 
-            else if (text.Equals("ENTER") && columnIndex >= currentRow.tiles.Length)
+            else if (text.Equals("enter") && columnIndex >= currentRow.tiles.Length)
             {
-                Debug.Log("enter içi");
+                
                 SubmitRow(currentRow);
             }
             else
@@ -127,7 +145,7 @@ public class Board : MonoBehaviour
                 SubmitRow(currentRow);
             }
         }
-        
+
         else
         {
             for (int i = 0; i < SUPPORTED_KEYS.Length; i++)
@@ -145,11 +163,11 @@ public class Board : MonoBehaviour
                     break;
 
                 }
-                
+
             }
-            
+
         }
-        
+
     }
     private void Update()
     {
@@ -158,45 +176,48 @@ public class Board : MonoBehaviour
 
     private void SubmitRow(Row row)
     {
-        Debug.Log("submit row içi");
-        if(!isValidWord(row.word))
+        
+        
+        if (!isValidWord(row.word))
         {
-            Debug.Log("valid deðil");
+            
             invalidWordText.gameObject.SetActive(true);
             row.InvalidWord(true);
             return;
         }
         string remaining = word;
 
-        for(int i =0; i < row.tiles.Length; i++)
+        for (int i = 0; i < row.tiles.Length; i++)
         {
             Tile tile = row.tiles[i];
-            Debug.Log("set title öncesi");
             tile.SetTile(true);
-            Debug.Log("set title sonrasý");
+            
 
 
             if (tile.letter == word[i])
             {
-                tile.SetState(correctState);
                 
+                tile.SetState(correctState);
+
                 remaining = remaining.Remove(i, 1);
                 remaining = remaining.Insert(i, " ");
+
             }
-            else if(!word.Contains(tile.letter))
+            else if (!word.Contains(tile.letter))
             {
                 tile.SetState(incorrectState);
+                
             }
 
         }
-        for(int i=0; i< row.tiles.Length; i++)
+        for (int i = 0; i < row.tiles.Length; i++)
         {
             Tile tile = row.tiles[i];
-            tile.SetTile(true);           
+            tile.SetTile(true);
 
             if (tile.state != correctState && tile.state != incorrectState)
             {
-                if(remaining.Contains(tile.letter)) 
+                if (remaining.Contains(tile.letter))
                 {
                     tile.SetState(wrongSpotState);
 
@@ -209,28 +230,82 @@ public class Board : MonoBehaviour
                     tile.SetState(incorrectState);
                 }
 
-            
+
             }
         }
-        rowIndex++;
-        columnIndex= 0;
+        if(HasWon(row))
+        {
+            count++;
+            enabled = false;
+            correctWordText.gameObject.SetActive(true);
+            playAgainText.gameObject.SetActive(true);
 
-        if(rowIndex >= rows.Length)
+        }
+        rowIndex++;
+        columnIndex = 0;
+
+        if (rowIndex >= rows.Length)
         {
             // when script is disabled update will not be called
-            enabled= false;
+            enabled = false;
+            if(count ==0)
+            {
+                gameOverText.gameObject.SetActive(true);
+            }
+            playAgainText.gameObject.SetActive(true);
         }
+    }
+
+    private void ClearBoard()
+    {
+        for(int row = 0; row< rows.Length;row++)
+        {
+            for(int col =0; col < rows[row].tiles.Length;col++)
+            {
+                rows[row].tiles[col].setLetter('\0');
+                rows[row].tiles[col].SetState(emptyState);
+                rows[row].tiles[col].ResetTile();
+            }
+        }
+        rowIndex = 0;
+        columnIndex= 0;
     }
 
     private bool isValidWord(string word)
     {
-        for(int i =0; i< validWords.Length; i++)
+
+        for (int i = 0; i < validWords.Length;   i++)
         {
-            if (validWords[i] == word) 
-            { 
-                return true; 
+            
+            if (validWords[i].Trim().Equals(word.ToLower()))
+            {
+                
+                return true;
             }
+
         }
         return false;
+    }
+    private bool HasWon(Row row)
+    {
+        for(int i = 0; i< row.tiles.Length; i++)
+        {
+            if (row.tiles[i].state != correctState)
+            {
+                return false;
+            }
+        }
+        return true;     
+    }
+    private void OnEnable()
+    {
+        correctWordText.gameObject.SetActive(false);
+        gameOverText.gameObject.SetActive(false);
+        playAgainText.gameObject.SetActive(false);
+        playAgainButton.SetActive(false);
+    }
+    private void OnDisable()
+    {
+        playAgainButton.SetActive(true);
     }
 }
